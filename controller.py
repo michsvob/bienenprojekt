@@ -12,7 +12,7 @@ import serial
 lcd=RPi_I2C_driver.lcd()
 
 
-lcd.clear()
+lcd.lcd_clear()
 lcd.lcd_display_string("Bienenprojekt",1)
 sleep(5)
 lcd.lcd_display_string("Starting!",2)
@@ -30,6 +30,8 @@ for i in range(7):
 
 for i in range(5):
     print("reading:")
-    print(con.readline())
+    reading=con.readline()
+    print(reading)
+    lcd.lcd_display_string(reading[1],2)
 
 con.close()
