@@ -1,7 +1,6 @@
 """
 Main
 """
-
 import RPi_I2C_driver
 from time import *
 import serial
@@ -28,6 +27,8 @@ sleep(1)
 lcd.lcd_display_string("Starting!",2)
 sleep(1)
 
+lcd.backlight(0)
+
 con=serial.Serial()
 con.port="/dev/ttyUSB0"
 con.baurdrate=9600
@@ -40,6 +41,7 @@ for i in range(8):
 # retrieve and display temperature and weight readings
 while True:
     try:
+        sleep(5)
         reading=con.readline().decode("utf-8").split(",")
         assert len(reading)==6
         lcd.lcd_clear()
@@ -90,7 +92,7 @@ while True:
         print(reading3)
         sleep(1)
 
-
+lcd.backlight(0)
 con.close()
 
 
