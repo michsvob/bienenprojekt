@@ -34,9 +34,8 @@ con.baurdrate=9600
 con.open()
 
 # read heading
-print(con.readlines(8))
-##for i in range(8):
-##    print(con.readline())
+for i in range(8):
+    print(con.readline())
 
 # retrieve and display temperature and weight readings
 while True:
@@ -49,40 +48,47 @@ while True:
 
     except AssertionError:
         print("Assertion Error: Unexpected length of reading from the scale.")
+    except TypeError:
+        print("Unexpected Data Type")
 
     finally:
         print(reading)
-        sleep(5)
+        sleep(1)
 
-    try: 
+    try:
         reading2=Adafruit_DHT.read_retry(sensor1,pin1)
         assert len(reading2)==2
         humidity1, temp2 = reading2
+        humidity1=round(humidity1,2)
+        temp2=round(temp2,2)
         lcd.lcd_clear()
         lcd.lcd_display_string("Temp2: "+ str(temp2)+" °C",1)
-        lcd.lcd_display_string("Humidity: "+str(humidity1)+" %",2)
+        lcd.lcd_display_string("RH1: "+str(humidity1)+" %",2)
 
     except AssertionError:
         print("Error - reading from the DHT sensor connected to pin "+str(pin1))
 
+
+
     finally:
-        print(reading2)    
-        sleep(5)
+        print(reading2)
+        sleep(1)
 
     try:
         reading3=Adafruit_DHT.read_retry(sensor2,pin2)
         humidity2, temp3=reading3
-        print(temp3,humidity2)
+        humidity2=round(humidity2,2)
+        temp3=round(temp3,2)
         lcd.lcd_clear()
         lcd.lcd_display_string("Temp3: "+str(temp3)+" °C",1)
-        lcd.lcd_display_string("Humidity2: "+str(humidity2)+"%",2)
+        lcd.lcd_display_string("RH2: "+str(humidity2)+"%",2)
 
     except AssertionError:
         print("Error - reading from the DHT sensor connected to pin "+str(pin1))
 
     finally:
-        print(reading3)    
-        sleep(5)
+        print(reading3)
+        sleep(1)
 
 
 con.close()
