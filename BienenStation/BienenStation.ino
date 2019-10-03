@@ -55,7 +55,7 @@ typedef struct __attribute__ ((packed)) sigfox_message {
   int8_t moduleTemperature; //signed fixed length 8 bit
   int8_t dhtTemperature;
   uint16_t dhtHumidity;
-  uint16_t scaleWeight;
+  int16_t scaleWeight;
   int8_t scaleTemperature;
   uint16_t bmpPressure;
   int8_t bmpTemperature;

@@ -38,6 +38,6 @@ uint16_t convertPressure(float value){
   return (uint16_t)(value);
 }
 
-uint16_t convertWeight(float value){
-  return (uint16_t)(100*value);
+int16_t convertWeight(float value){
+  return (int16_t)(100*value);
 }
