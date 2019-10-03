@@ -72,11 +72,11 @@ int messageCount = 0;
 
 void setup() {
 
-  //if (oneshot == true) {
+  if (oneshot == true) {
   // Wait for the serial
   Serial.begin(115200);
   while (!Serial) {}
-  //}
+  }
 
   if (!SigFox.begin()) {
     // Something is really wrong, try rebooting
@@ -94,14 +94,18 @@ void setup() {
   // Configure the sensors and populate the status field
   // DHT22
   dht.begin();
-  Serial.println("DHT OK");
+  if (oneshot == true) {
+    Serial.println("DHT OK");
+  }
 
   if (!bmp.begin()) {
     msg.status |= STATUS_BMP_PRS_KO;
     msg.status |= STATUS_BMP_TMP_KO;
   }
   else {
+    if (oneshot == true) {
     Serial.println("BMP OK");
+    }
   }
 
   //BMP280
@@ -118,7 +122,9 @@ void setup() {
   // Wait for Serial1
   while (!Serial1) {
     delay(50);
+    if (oneshot == true) {
     Serial.print("o");
+    }
   }
 
   //skip headers sent by serial by OpenScale
@@ -137,7 +143,9 @@ void setup() {
       }
     }
   }
+  if (oneshot == true) {
   Serial.println("Scale OK");
+  }
 }
 
 void loop() {
@@ -145,7 +153,9 @@ void loop() {
   // Floats converted to bytes
 
   messageCount++;
-  Serial.println("Message Nr.: " + String(messageCount));
+  if (oneshot == true) {
+    Serial.println("Message Nr.: " + String(messageCount));
+  }
 
   //Readings
   //DHT22
@@ -178,35 +188,42 @@ void loop() {
       delay(50);
       timeOutCounter++;
       if (timeOutCounter > 1000) {
-        Serial.println("Timeout Error Reading from OpenScale.");
+        if (oneshot == true) {
+          Serial.println("Timeout Error Reading from OpenScale.");
+        }
+        
         scaleReading = scaleReading + "0,0,0,0,0";
         stringComplete = true;
         break;
       }
     }
   }
-
+if (oneshot == true) {
   Serial.println(scaleReading);//Po odladění smazat!
+}
+  
   int ind1 = scaleReading.indexOf(",");
   int ind2 = scaleReading.indexOf(",", ind1 + 1);
   int ind3 = scaleReading.indexOf(",", ind2 + 1);
   int ind4 = scaleReading.indexOf(",", ind3 + 1);
+  if (oneshot == true) {
   Serial.println(String(ind1));
   Serial.println(String(ind2));
   Serial.println(String(ind3));
   Serial.println(String(ind4));
+  }
 
   scaleWeight = scaleReading.substring(ind1 + 1, ind2).toFloat();
   scaleTemperature = scaleReading.substring(ind3 + 1, ind4).toFloat();
 
 
   //Conversions
-  msg.dhtHumidity = convertoFloatToUInt16(dhtHumidity, 100);
-  msg.dhtTemperature = convertoFloatToInt8(dhtTemperature, 100, -100);
-  msg.bmpPressure = convertoFloatToUInt16(bmpPressure, 200000);
-  msg.bmpTemperature = convertoFloatToInt8(bmpTemperature, 100, -100);
-  msg.scaleWeight = convertoFloatToInt16(scaleWeight, 100, -100);
-  msg.scaleTemperature = convertoFloatToInt8(scaleTemperature, 100, -100);
+  msg.dhtHumidity = convertHumidity(dhtHumidity);
+  msg.dhtTemperature = convertTemperature(dhtTemperature);
+  msg.bmpPressure = convertPressure(bmpPressure);
+  msg.bmpTemperature = convertTemperature(bmpTemperature);
+  msg.scaleWeight = convertWeight(scaleWeight);
+  msg.scaleTemperature = convertTemperature(scaleTemperature);
 
   // Start the module
   SigFox.begin();
@@ -215,14 +232,14 @@ void loop() {
 
   // We can only read the module temperature before SigFox.end()
   float moduleTemperature = SigFox.internalTemperature();
-  msg.moduleTemperature = convertoFloatToInt8(moduleTemperature, 100, -100);
-
+  msg.moduleTemperature = convertTemperature(moduleTemperature);
+if (oneshot == true) {
   Serial.println("Sigfox temperature: " + String(moduleTemperature));
   Serial.println("DHT temperature: " + String(dhtTemperature));
   Serial.println("DHT humidity: " + String(dhtHumidity));
   Serial.println("Weight: " + String(scaleWeight));
   Serial.println("OpenScale temperature: " + String(scaleTemperature));
-
+}
   // Clears all pending interrupts
   SigFox.status();
   delay(1);
@@ -231,8 +248,9 @@ void loop() {
   SigFox.write((uint8_t*)&msg, 12);
 
   msg.lastMessageStatus = SigFox.endPacket();
-
+if (oneshot == true) {
   Serial.println("Status: " + String(msg.lastMessageStatus));
+}
   SigFox.end();
 
   if (oneshot == true) {

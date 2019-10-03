@@ -23,3 +23,21 @@ uint8_t convertoFloatToUInt8(float value, long max, long min = 0) {
   float conversionFactor = (float) (UINT8_t_MAX) / (float)(max - min);
   return (uint8_t)(value * conversionFactor);
 }
+
+int8_t convertTemperature(float value){
+  //-128 - +128
+  return (uint8_t)(value);
+}
+
+uint8_t convertHumidity(float value){
+  //max uint = 256
+  return (uint8_t)(value);
+}
+
+uint16_t convertPressure(float value){
+  return (uint16_t)(value);
+}
+
+uint16_t convertWeight(float value){
+  return (uint16_t)(100*value);
+}
