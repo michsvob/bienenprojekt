@@ -29,6 +29,7 @@
 
 // Set oneshot to false to trigger continuous mode when you finisched setting up the whole flow
 int oneshot = false;
+uint8_t lastMessageStatus;
 
 #define STATUS_OK     0
 #define STATUS_DHT_HUM_KO 1
@@ -39,6 +40,7 @@ int oneshot = false;
 #define STATUS_BMP_TMP_KO 32
 
 #define DHTPIN 2
+#define SCALE_ENABLE 5
 #define DHTTYPE DHT22
 
 DHT dht(DHTPIN, DHTTYPE);
@@ -52,14 +54,14 @@ Adafruit_BMP280  bmp;
 */
 typedef struct __attribute__ ((packed)) sigfox_message {
   uint8_t status; //unsigned fixed length 8 bit
-  int8_t moduleTemperature; //signed fixed length 8 bit
+  int8_t lightLevel; //signed fixed length 8 bit
   int8_t dhtTemperature;
   uint16_t dhtHumidity;
   int16_t scaleWeight;
   int8_t scaleTemperature;
   uint16_t bmpPressure;
   int8_t bmpTemperature;
-  uint8_t lastMessageStatus;
+  uint8_t batteryStatus;
 } SigfoxMessage;
 
 // stub for message which will be sent
@@ -69,8 +71,11 @@ bool stringComplete;
 char inChar;
 String scaleReading;
 int messageCount = 0;
+int timeOutCounter=0;
 
 void setup() {
+
+  pinMode(SCALE_ENABLE, OUTPUT);
 
   if (oneshot == true) {
   // Wait for the serial
@@ -107,7 +112,7 @@ void setup() {
     Serial.println("BMP OK");
     }
   }
-
+  
   //BMP280
   /* Default settings from datasheet. */
   bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
@@ -119,20 +124,36 @@ void setup() {
   //OpenScale
   //Readings from OpenScale are being sent over serial1
   Serial1.begin(9600);
+
   // Wait for Serial1
   while (!Serial1) {
     delay(50);
     if (oneshot == true) {
-    Serial.print("o");
+      Serial.print("o");
     }
   }
 
   //skip headers sent by serial by OpenScale
   for (int i = 1; i <= 8; i++) {
-    while (!Serial1.available()) {
-      delay(50);
-    }
+    digitalWrite(SCALE_ENABLE, HIGH);
+    delay(1000);
+    Serial1.write("!");//trigger reading
+    Serial1.flush();
+    
     stringComplete = false;
+    if (oneshot == true) {
+      while(Serial1.available() && inChar != '\n'){
+        inChar=(char)Serial1.read();
+        scaleReading+=inChar;
+      }
+      Serial.print(scaleReading);
+      scaleReading="";
+      Serial.println("i");
+    }
+    
+    Serial1.write("!");//trigger reading
+    Serial1.flush();
+    //Serial1.write("!");'\n'
     while (Serial1.available() && stringComplete == false) {
       inChar = (char)Serial1.read();
       scaleReading += inChar;
@@ -142,9 +163,10 @@ void setup() {
         scaleReading="";
       }
     }
+    //digitalWrite(SCALE_ENABLE, LOW);
   }
   if (oneshot == true) {
-  Serial.println("Scale OK");
+    Serial.println("Scale OK");
   }
 }
 
@@ -166,6 +188,11 @@ void loop() {
   float bmpPressure = bmp.readPressure();
   float bmpTemperature = bmp.readTemperature();
 
+  //Vellman VMA 407
+  float lightLevel=analogRead(6);
+
+  float batteryStatus=analogRead(2);
+
   //OpenScale
   String scaleReading = "";
   float scaleWeight;
@@ -173,9 +200,13 @@ void loop() {
 
   //Wait for message
   //In case of timeout error, send a dummy message.
-  int timeOutCounter = 0;
+  timeOutCounter = 0;
   stringComplete = false;
 
+  digitalWrite(SCALE_ENABLE, HIGH);
+  delay(100);
+  Serial1.write("!");//trigger reading
+  Serial1.flush();
   while (stringComplete == false) {
     if (Serial1.available()) {
       inChar = (char)Serial1.read();
@@ -187,17 +218,18 @@ void loop() {
     else {
       delay(50);
       timeOutCounter++;
-      if (timeOutCounter > 1000) {
+      if (timeOutCounter > 100) {
         if (oneshot == true) {
           Serial.println("Timeout Error Reading from OpenScale.");
         }
         
-        scaleReading = scaleReading + "0,0,0,0,0";
+        scaleReading = scaleReading + "-99,-99,-99,-99,-99";
         stringComplete = true;
         break;
       }
     }
   }
+  digitalWrite(SCALE_ENABLE, LOW);
 if (oneshot == true) {
   Serial.println(scaleReading);//Po odladění smazat!
 }
@@ -224,6 +256,8 @@ if (oneshot == true) {
   msg.bmpTemperature = convertTemperature(bmpTemperature);
   msg.scaleWeight = convertWeight(scaleWeight);
   msg.scaleTemperature = convertTemperature(scaleTemperature);
+  msg.lightLevel = convertFloatToInt8(lightLevel,128,-127);
+  msg.batteryStatus = convertFloatToUInt8(batteryStatus,128);
 
   // Start the module
   SigFox.begin();
@@ -231,10 +265,11 @@ if (oneshot == true) {
   delay(100);
 
   // We can only read the module temperature before SigFox.end()
-  float moduleTemperature = SigFox.internalTemperature();
-  msg.moduleTemperature = convertTemperature(moduleTemperature);
+  //float moduleTemperature = SigFox.internalTemperature();
+  //msg.moduleTemperature = convertTemperature(moduleTemperature);
+  
 if (oneshot == true) {
-  Serial.println("Sigfox temperature: " + String(moduleTemperature));
+  Serial.println("Light level: " + String(lightLevel));
   Serial.println("DHT temperature: " + String(dhtTemperature));
   Serial.println("DHT humidity: " + String(dhtHumidity));
   Serial.println("Weight: " + String(scaleWeight));
@@ -247,9 +282,9 @@ if (oneshot == true) {
   SigFox.beginPacket();
   SigFox.write((uint8_t*)&msg, 12);
 
-  msg.lastMessageStatus = SigFox.endPacket();
+  lastMessageStatus = SigFox.endPacket();
 if (oneshot == true) {
-  Serial.println("Status: " + String(msg.lastMessageStatus));
+  Serial.println("Status: " + String(lastMessageStatus));
 }
   SigFox.end();
 
