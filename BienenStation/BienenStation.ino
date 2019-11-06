@@ -123,6 +123,8 @@ void setup() {
 
   //OpenScale
   //Readings from OpenScale are being sent over serial1
+  digitalWrite(SCALE_ENABLE, HIGH);
+  delay(5000);
   Serial1.begin(9600);
 
   // Wait for Serial1
@@ -135,7 +137,6 @@ void setup() {
 
   //skip headers sent by serial by OpenScale
   for (int i = 1; i <= 8; i++) {
-    digitalWrite(SCALE_ENABLE, HIGH);
     delay(1000);
     Serial1.write("!");//trigger reading
     Serial1.flush();
@@ -159,12 +160,14 @@ void setup() {
       scaleReading += inChar;
       if (inChar == '\n') {
         stringComplete = true;
+        if(oneshot==true){
         Serial.println(scaleReading);
+        }
         scaleReading="";
       }
     }
-    //digitalWrite(SCALE_ENABLE, LOW);
   }
+  digitalWrite(SCALE_ENABLE, LOW);
   if (oneshot == true) {
     Serial.println("Scale OK");
   }
@@ -178,7 +181,8 @@ void loop() {
   if (oneshot == true) {
     Serial.println("Message Nr.: " + String(messageCount));
   }
-
+  digitalWrite(SCALE_ENABLE, HIGH);
+  delay(8000);
   //Readings
   //DHT22
   float dhtHumidity = dht.readHumidity();
@@ -203,10 +207,9 @@ void loop() {
   timeOutCounter = 0;
   stringComplete = false;
 
-  digitalWrite(SCALE_ENABLE, HIGH);
-  delay(100);
   Serial1.write("!");//trigger reading
   Serial1.flush();
+  delay(500);
   while (stringComplete == false) {
     if (Serial1.available()) {
       inChar = (char)Serial1.read();
@@ -222,7 +225,6 @@ void loop() {
         if (oneshot == true) {
           Serial.println("Timeout Error Reading from OpenScale.");
         }
-        
         scaleReading = scaleReading + "-99,-99,-99,-99,-99";
         stringComplete = true;
         break;
@@ -253,7 +255,7 @@ if (oneshot == true) {
   msg.dhtHumidity = convertHumidity(dhtHumidity);
   msg.dhtTemperature = convertTemperature(dhtTemperature);
   msg.bmpPressure = convertPressure(bmpPressure);
-  msg.bmpTemperature = convertTemperature(bmpTemperature);
+  msg.bmpTemperature = convertTemperature(bmpTemperature);https://thinger.io/pricing/
   msg.scaleWeight = convertWeight(scaleWeight);
   msg.scaleTemperature = convertTemperature(scaleTemperature);
   msg.lightLevel = convertFloatToInt8(lightLevel,128,-127);
