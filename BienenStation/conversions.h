@@ -26,7 +26,7 @@ uint8_t convertFloatToUInt8(float value, long max, long min = 0) {
 
 int8_t convertTemperature(float value){
   //-128 - +128
-  return (uint8_t)(value);
+  return (uint8_t)(5*value);
 }
 
 uint8_t convertHumidity(float value){
@@ -39,5 +39,5 @@ uint16_t convertPressure(float value){
 }
 
 int16_t convertWeight(float value){
-  return (int16_t)(100*value);
+  return (int16_t)(1000*value);
 }

@@ -16,9 +16,6 @@
   - Temperature and humidity sensor DHT22
   - MKR FOX 1200 onboard temperature sensor
   - Bosch BMP280 barometric pressure sensor and temperature sensor, connected over I2C
-
-  Since the Sigfox network can send a maximum of 120 messages per day (depending on your plan)
-  we'll optimize the readings and send data in compact binary format
 */
 
 #include <ArduinoLowPower.h>
@@ -70,7 +67,6 @@ SigfoxMessage msg;
 bool stringComplete;
 char inChar;
 String scaleReading;
-int messageCount = 0;
 int timeOutCounter=0;
 
 void setup() {
@@ -134,53 +130,24 @@ void setup() {
       Serial.print("o");
     }
   }
-
-  //skip headers sent by serial by OpenScale
-  for (int i = 1; i <= 8; i++) {
-    delay(1000);
-    Serial1.write("!");//trigger reading
-    Serial1.flush();
-    
-    stringComplete = false;
-    if (oneshot == true) {
-      while(Serial1.available() && inChar != '\n'){
-        inChar=(char)Serial1.read();
-        scaleReading+=inChar;
-      }
-      Serial.print(scaleReading);
-      scaleReading="";
-      Serial.println("i");
-    }
-    
-    Serial1.write("!");//trigger reading
-    Serial1.flush();
-    //Serial1.write("!");'\n'
-    while (Serial1.available() && stringComplete == false) {
-      inChar = (char)Serial1.read();
-      scaleReading += inChar;
-      if (inChar == '\n') {
-        stringComplete = true;
-        if(oneshot==true){
-        Serial.println(scaleReading);
-        }
-        scaleReading="";
-      }
-    }
-  }
+  
   digitalWrite(SCALE_ENABLE, LOW);
   if (oneshot == true) {
     Serial.println("Scale OK");
   }
 }
 
+void serialInputFlush(){
+  // clear serial buffer - make sure we are reading the last message...
+  unsigned long now = millis ();
+  while (millis () - now < 1000)
+    Serial1.read ();  // read and discard any input
+}   
+
 void loop() {
   // Every 15 minutes, read all the sensors and send data
   // Floats converted to bytes
 
-  messageCount++;
-  if (oneshot == true) {
-    Serial.println("Message Nr.: " + String(messageCount));
-  }
   digitalWrite(SCALE_ENABLE, HIGH);
   delay(8000);
   //Readings
@@ -195,6 +162,7 @@ void loop() {
   //Vellman VMA 407
   float lightLevel=analogRead(6);
 
+  //Battery status - OpenScale LiPo battery connected over 1:1 voltage divider to analog input 
   float batteryStatus=analogRead(2);
 
   //OpenScale
@@ -207,9 +175,10 @@ void loop() {
   timeOutCounter = 0;
   stringComplete = false;
 
+  serialInputFlush();
   Serial1.write("!");//trigger reading
   Serial1.flush();
-  delay(500);
+  //delay(500);
   while (stringComplete == false) {
     if (Serial1.available()) {
       inChar = (char)Serial1.read();
