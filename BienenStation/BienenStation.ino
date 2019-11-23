@@ -36,6 +36,8 @@ uint8_t lastMessageStatus;
 #define STATUS_BMP_PRS_KO 16
 #define STATUS_BMP_TMP_KO 32
 
+#define BMP280_I2C_ADDRESS  0x76
+
 #define DHTPIN 2
 #define SCALE_ENABLE 5
 #define DHTTYPE DHT22
@@ -99,7 +101,7 @@ void setup() {
     Serial.println("DHT OK");
   }
 
-  if (!bmp.begin()) {
+  if (!bmp.begin(BMP280_I2C_ADDRESS)) {
     msg.status |= STATUS_BMP_PRS_KO;
     msg.status |= STATUS_BMP_TMP_KO;
   }
@@ -224,7 +226,7 @@ if (oneshot == true) {
   msg.dhtHumidity = convertHumidity(dhtHumidity);
   msg.dhtTemperature = convertTemperature(dhtTemperature);
   msg.bmpPressure = convertPressure(bmpPressure);
-  msg.bmpTemperature = convertTemperature(bmpTemperature);https://thinger.io/pricing/
+  msg.bmpTemperature = convertTemperature(bmpTemperature);
   msg.scaleWeight = convertWeight(scaleWeight);
   msg.scaleTemperature = convertTemperature(scaleTemperature);
   msg.lightLevel = convertFloatToInt8(lightLevel,128,-127);
